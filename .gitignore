@@ -34,7 +34,6 @@ env/
 # YOLO Training outputs
 runs/
 *.pt
-!yolo*.pt
 
 # Dataset (besar, jangan upload)
 dataset_kasir/
