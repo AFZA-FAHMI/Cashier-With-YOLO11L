@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Transaksi - Smart Kiosk</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+            min-height: 100vh;
+            padding: 24px 16px;
+            position: fixed;
+            width: var(--sidebar-width);
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-brand {
+            color: white;
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+
+        .sidebar-brand h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .sidebar-brand small {
+            opacity: 0.7;
+            font-size: 0.75rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        /* Hamburger Button */
+        .hamburger-btn {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 32px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Cards */
+        .card-custom {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .card-custom .card-header {
+            background: transparent;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 24px;
+        }
+
+        .card-custom .card-body {
+            padding: 24px;
+        }
+
+        /* Table */
+        .table-modern th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            font-weight: 600;
+            padding: 12px 16px;
+            border: none;
+            background: #f8fafc;
+        }
+
+        .table-modern td {
+            padding: 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .trx-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #6366f1;
+        }
+
+        .trx-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        /* Stats */
+        .stats-card {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .stats-card .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #34d399;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .hamburger-btn {
+                left: 20px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu text-warning fs-4"></i>
+                <div>
+                    <h5>SMART KIOSK</h5>
+                    <small>Admin Dashboard</small>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav flex-column">
+            <a href="/" class="nav-link"><i class="bi bi-cart3"></i>Kasir (POS)</a>
+            <a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+            <a href="/riwayat" class="nav-link active"><i class="bi bi-clock-history"></i>Riwayat</a>
+            <a href="/download_laporan" class="nav-link"><i class="bi bi-file-earmark-excel"></i>Export Laporan</a>
+            <hr class="my-3 border-secondary opacity-25">
+            <a href="/training" class="nav-link">
+                <i class="bi bi-cpu"></i>AI Training
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">
+                <i class="bi bi-list" id="hamburgerIcon"></i>
+            </button>
+            <div>
+                <h4 class="fw-bold mb-1">Riwayat Transaksi</h4>
+                <p class="text-muted mb-0">Lihat semua transaksi yang telah dilakukan</p>
+            </div>
+        </div>
+
+        <!-- Filter & Stats -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="card card-custom">
+                    <div class="card-body">
+                        <form method="GET" action="/riwayat" class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Dari Tanggal</label>
+                                <input type="date" name="from" class="form-control" value="{{ date_from }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Sampai Tanggal</label>
+                                <input type="date" name="to" class="form-control" value="{{ date_to }}">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-funnel me-1"></i>Filter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="stats-card h-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-box">
+                            <i class="bi bi-wallet2 fs-2"></i>
+                        </div>
+                        <div>
+                            <small class="opacity-75">Total Omzet</small>
+                            <div class="value">Rp {{ "{:,.0f}".format(total_sum) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="card card-custom">
+            <div class="card-header">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-receipt me-2"></i>Daftar Transaksi</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-modern mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID Transaksi</th>
+                                <th>Waktu</th>
+                                <th>Detail</th>
+                                <th>Bayar</th>
+                                <th>Kembalian</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trx in riwayat %}
+                            <tr>
+                                <td><span class="trx-id">{{ trx.trx_id or '-' }}</span></td>
+                                <td>{{ trx.waktu }}</td>
+                                <td><span class="text-truncate d-inline-block" style="max-width:200px">{{ trx.detail
+                                        }}</span></td>
+                                <td>Rp {{ "{:,}".format(trx.uang_bayar or 0) }}</td>
+                                <td>Rp {{ "{:,}".format(trx.kembalian or 0) }}</td>
+                                <td class="text-end trx-amount">Rp {{ "{:,}".format(trx.total_belanja) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <i class="bi bi-inbox text-muted fs-1 mb-3 d-block"></i>
+                                    <p class="text-muted mb-0">Belum ada transaksi</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upload Model -->
+    <div class="modal fade" id="modalUploadModel" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Upload AI Model</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/upload_model" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <strong>Info:</strong> Upload file model YOLO hasil training (.pt)
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">File Model (.pt)</label>
+                            <input type="file" name="file_model" class="form-control" accept=".pt" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i>Upload Model
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sidebarOpen = true;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const hamburgerIcon = document.getElementById('hamburgerIcon');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarOpen) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                hamburgerIcon.classList.remove('bi-x-lg');
+                hamburgerIcon.classList.add('bi-list');
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                hamburgerIcon.classList.remove('bi-list');
+                hamburgerIcon.classList.add('bi-x-lg');
+            }
+
+            // Mobile overlay
+            if (window.innerWidth <= 768) {
+                overlay.classList.toggle('active', sidebarOpen);
+            }
+
+            // Save state
+            localStorage.setItem('sidebarOpen', sidebarOpen);
+        }
+
+        // Save sidebar state to localStorage
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedState = localStorage.getItem('sidebarOpen');
+            if (savedState === 'false') {
+                toggleSidebar();
+            }
+        });
+    </script>
+</body>
+
+</html>

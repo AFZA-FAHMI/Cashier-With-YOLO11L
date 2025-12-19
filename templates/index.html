@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Smart Kiosk - AI Cashier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e1b4b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-600: #475569;
+            --gray-800: #1e293b;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+            min-height: 100vh;
+            padding: 24px 16px;
+            position: fixed;
+            width: var(--sidebar-width);
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-brand {
+            color: white;
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+
+        .sidebar-brand h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .sidebar-brand small {
+            opacity: 0.7;
+            font-size: 0.75rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        /* Hamburger Button */
+        .hamburger-btn {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 32px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Cards */
+        .card-glass {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-dark {
+            background: var(--dark);
+            border-radius: 16px;
+            color: white;
+        }
+
+        /* Total Display */
+        .total-display {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .total-display .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #a5b4fc;
+            margin-bottom: 8px;
+        }
+
+        .total-display .amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #34d399;
+            text-shadow: 0 0 30px rgba(52, 211, 153, 0.5);
+        }
+
+        /* Cart Table */
+        .cart-table {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .cart-table thead {
+            background: var(--gray-100);
+        }
+
+        .cart-table th {
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-600);
+            padding: 16px;
+            border: none;
+        }
+
+        .cart-table td {
+            padding: 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .cart-item-price {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--gray-600);
+        }
+
+        .qty-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .subtotal {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .empty-state img {
+            width: 120px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h5 {
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        .btn-pay {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Product List */
+        .product-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            transition: background 0.2s;
+        }
+
+        .product-item:hover {
+            background: var(--gray-50);
+        }
+
+        .product-info h6 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .product-info small {
+            color: var(--gray-600);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        .stock-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .stock-ok {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .stock-low {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .stock-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Input */
+        .input-pay {
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 1.2rem;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .input-pay:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        /* Receipt Modal */
+        .receipt {
+            font-family: 'JetBrains Mono', monospace;
+            background: white;
+            padding: 24px;
+            border: 2px dashed var(--gray-200);
+            border-radius: 8px;
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 1px dashed var(--gray-300);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        .receipt-total {
+            border-top: 2px dashed var(--gray-300);
+            margin-top: 16px;
+            padding-top: 16px;
+            font-weight: 700;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        /* Animation */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 3px;
+        }
+
+        /* Status badge */
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #10b981;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .hamburger-btn {
+                left: 20px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu text-warning fs-4"></i>
+                <div>
+                    <h5>SMART KIOSK</h5>
+                    <small><span class="status-indicator status-online"></span>AI-Powered</small>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav flex-column">
+            <a href="/" class="nav-link active"><i class="bi bi-cart3"></i>Kasir (POS)</a>
+            <a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+            <a href="/riwayat" class="nav-link"><i class="bi bi-clock-history"></i>Riwayat</a>
+            <a href="/download_laporan" class="nav-link"><i class="bi bi-file-earmark-excel"></i>Export Laporan</a>
+            <hr class="my-3 border-secondary opacity-25">
+            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#modalImport">
+                <i class="bi bi-upload"></i>Import Excel
+            </a>
+            <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#modalTambahBarang">
+                <i class="bi bi-plus-circle"></i>Tambah Produk
+            </a>
+            <a href="/training" class="nav-link">
+                <i class="bi bi-cpu"></i>AI Training
+            </a>
+            <hr class="my-3 border-secondary opacity-25">
+            <a href="#" class="nav-link text-warning" data-bs-toggle="modal" data-bs-target="#modalOpenCamera">
+                <i class="bi bi-camera-video"></i>Open Camera
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Page Header -->
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">
+                <i class="bi bi-list" id="hamburgerIcon"></i>
+            </button>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-cart3 me-2 text-primary"></i>Kasir - Point of Sale</h4>
+                <small class="text-muted">Scan barcode atau pilih produk untuk memulai transaksi</small>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i>{{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="row g-4">
+            <!-- Cart Section -->
+            <div class="col-lg-7">
+                <div class="card card-glass h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-cart3 me-2 text-primary"></i>Keranjang Belanja
+                            </h5>
+                            <span class="badge bg-primary rounded-pill px-3 py-2" id="badgeJumlahItem">0 Item</span>
+                        </div>
+
+                        <div style="max-height: 450px; overflow-y: auto;">
+                            <table class="table cart-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th class="text-end">Harga</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Subtotal</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelKeranjang"></tbody>
+                            </table>
+
+                            <div id="emptyState" class="empty-state">
+                                <img src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png" alt="Empty">
+                                <h5>Keranjang Kosong</h5>
+                                <p class="text-muted mb-0">Scan barcode atau pilih produk untuk memulai</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="col-lg-5">
+                <div class="card card-glass mb-4">
+                    <div class="card-body p-4">
+                        <div class="total-display mb-4">
+                            <div class="label">Total Tagihan</div>
+                            <div class="amount" id="displayTotal">Rp 0</div>
+                        </div>
+
+                        <form action="/checkout" method="POST">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Pembayaran Tunai</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0">Rp</span>
+                                    <input type="number" name="uang_bayar" class="form-control input-pay border-start-0"
+                                        placeholder="0" required id="inputBayar">
+                                </div>
+                                <div class="quick-actions mt-2">
+                                    <button type="button" class="quick-btn bg-light"
+                                        onclick="setPayment(10000)">10K</button>
+                                    <button type="button" class="quick-btn bg-light"
+                                        onclick="setPayment(20000)">20K</button>
+                                    <button type="button" class="quick-btn bg-light"
+                                        onclick="setPayment(50000)">50K</button>
+                                    <button type="button" class="quick-btn bg-light"
+                                        onclick="setPayment(100000)">100K</button>
+                                    <button type="button" class="quick-btn bg-primary text-white"
+                                        onclick="setExact()">Uang Pas</button>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-pay btn-success btn-lg">
+                                    <i class="bi bi-check-circle-fill me-2"></i>Bayar Sekarang
+                                </button>
+                                <a href="/reset_keranjang" class="btn btn-outline-danger">
+                                    <i class="bi bi-trash me-1"></i>Batalkan
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Product Database -->
+                <div class="card card-glass">
+                    <div class="card-header bg-transparent border-0 pt-4 px-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2"></i>Database Produk</h6>
+                            <input type="text" class="form-control form-control-sm" style="width: 150px;"
+                                placeholder="Cari..." id="searchProduct">
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="product-list" id="productList">
+                            {% for item in produk %}
+                            <div class="product-item" data-name="{{ item.nama_barang|lower }}"
+                                data-barcode="{{ item.barcode }}">
+                                <div class="product-info">
+                                    <h6>{{ item.nama_barang }}</h6>
+                                    <small>{{ item.barcode }} • Rp {{ "{:,}".format(item.harga) }}</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span
+                                        class="stock-badge {% if item.stok > 10 %}stock-ok{% elif item.stok > 0 %}stock-low{% else %}stock-out{% endif %}">
+                                        {{ item.stok }} pcs
+                                    </span>
+                                    <button class="btn btn-sm btn-primary rounded-circle"
+                                        onclick="addToCart({{ item.id }})" {% if item.stok==0 %}disabled{% endif %}>
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tambah Barang -->
+    <div class="modal fade" id="modalTambahBarang" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Tambah Produk Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/tambah_barang" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nama Barang</label>
+                            <input type="text" name="nama" class="form-control" placeholder="Contoh: Indomie Goreng"
+                                required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Barcode</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" name="barcode" class="form-control"
+                                    placeholder="Scan atau ketik kode..." required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Harga (Rp)</label>
+                                <input type="number" name="harga" class="form-control" placeholder="15000" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Stok Awal</label>
+                                <input type="number" name="stok" class="form-control" placeholder="100" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-check-lg me-1"></i>Simpan Produk
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Import Excel -->
+    <div class="modal fade" id="modalImport" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-excel me-2"></i>Import dari Excel</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/upload_excel" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="alert alert-secondary">
+                            <strong>Format Excel:</strong><br>
+                            Header kolom harus: <code>Nama Barang, Barcode, Harga, Stok</code>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Pilih File .xlsx</label>
+                            <input type="file" name="file_excel" class="form-control" accept=".xlsx" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-info text-white">
+                            <i class="bi bi-upload me-1"></i>Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upload Model -->
+    <div class="modal fade" id="modalUploadModel" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Upload AI Model</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/upload_model" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <strong>Info:</strong> Upload file model YOLO hasil training (.pt)
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">File Model (.pt)</label>
+                            <input type="file" name="file_model" class="form-control" accept=".pt" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i>Upload Model
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Struk -->
+    {% if session.get('last_trx') %}
+    <div class="modal fade" id="modalStruk" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Transaksi Berhasil!</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="receipt" id="areaStruk">
+                        <div class="receipt-header">
+                            <h5 class="mb-1">{{ store.name }}</h5>
+                            <small>{{ store.address }}</small><br>
+                            <small>================================</small>
+                        </div>
+                        <div class="small mb-2">
+                            <div class="d-flex justify-content-between">
+                                <span>ID: {{ session['last_trx']['id'] }}</span>
+                                <span>{{ session['last_trx']['waktu'] }}</span>
+                            </div>
+                        </div>
+                        <hr class="my-2">
+                        {% for item in session['last_trx']['items'] %}
+                        <div class="receipt-item">
+                            <span>{{ item.nama }} x{{ item.jumlah }}</span>
+                            <span>{{ "{:,}".format(item.subtotal) }}</span>
+                        </div>
+                        {% endfor %}
+                        <div class="receipt-total">
+                            <div class="d-flex justify-content-between">
+                                <span>TOTAL</span>
+                                <span>Rp {{ "{:,}".format(session['last_trx']['total']) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>TUNAI</span>
+                                <span>Rp {{ "{:,}".format(session['last_trx']['bayar']) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-success">
+                                <span>KEMBALI</span>
+                                <span>Rp {{ "{:,}".format(session['last_trx']['kembalian']) }}</span>
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <small>-- Terima Kasih --</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="printStruk()" class="btn btn-primary">
+                        <i class="bi bi-printer me-1"></i>Cetak
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% set _ = session.pop('last_trx') %}
+    {% endif %}
+
+    <!-- Modal Open Camera -->
+    <div class="modal fade" id="modalOpenCamera" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title"><i class="bi bi-camera-video me-2"></i>Open Camera Scanner</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-4">Pilih sumber kamera untuk scanner barcode:</p>
+
+                    <div class="d-grid gap-3">
+                        <button onclick="openCamera('wifi')" class="btn btn-outline-primary btn-lg text-start">
+                            <i class="bi bi-wifi me-3 fs-4"></i>
+                            <span>
+                                <strong>WiFi Hotspot (IP Webcam)</strong><br>
+                                <small class="text-muted">Kamera HP via WiFi</small>
+                            </span>
+                        </button>
+
+                        <button onclick="openCamera('usb')" class="btn btn-outline-success btn-lg text-start">
+                            <i class="bi bi-usb-symbol me-3 fs-4"></i>
+                            <span>
+                                <strong>USB Tethering</strong><br>
+                                <small class="text-muted">Kamera HP via USB</small>
+                            </span>
+                        </button>
+
+                        <button onclick="openCamera('webcam')" class="btn btn-outline-info btn-lg text-start">
+                            <i class="bi bi-webcam me-3 fs-4"></i>
+                            <span>
+                                <strong>Webcam Laptop</strong><br>
+                                <small class="text-muted">Kamera bawaan laptop</small>
+                            </span>
+                        </button>
+
+                        <div class="input-group">
+                            <input type="text" id="customCameraUrl" class="form-control"
+                                placeholder="http://192.168.x.x:8080/video">
+                            <button onclick="openCamera('custom')" class="btn btn-outline-secondary">
+                                <i class="bi bi-link-45deg"></i> Custom URL
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-4 mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <small>Scanner akan terbuka di jendela terpisah. Tekan <kbd>Q</kbd> untuk keluar.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTotal = 0;
+        let sidebarOpen = true;
+
+        const formatRupiah = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const hamburgerIcon = document.getElementById('hamburgerIcon');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarOpen) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                hamburgerIcon.classList.remove('bi-x-lg');
+                hamburgerIcon.classList.add('bi-list');
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                hamburgerIcon.classList.remove('bi-list');
+                hamburgerIcon.classList.add('bi-x-lg');
+            }
+
+            // Mobile overlay
+            if (window.innerWidth <= 768) {
+                overlay.classList.toggle('active', sidebarOpen);
+            }
+
+            // Save state
+            localStorage.setItem('sidebarOpen', sidebarOpen);
+        }
+
+        function updateKeranjang() {
+            fetch('/api/get_keranjang')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('tabelKeranjang');
+                    const empty = document.getElementById('emptyState');
+                    const total = document.getElementById('displayTotal');
+                    const badge = document.getElementById('badgeJumlahItem');
+
+                    currentTotal = data.total_bayar;
+                    total.innerText = formatRupiah(data.total_bayar);
+                    badge.innerText = data.total_items + ' Item';
+
+                    if (data.keranjang.length === 0) {
+                        tbody.innerHTML = '';
+                        empty.style.display = 'block';
+                        return;
+                    }
+
+                    empty.style.display = 'none';
+                    let html = '';
+                    data.keranjang.forEach(item => {
+                        html += `
+                            <tr class="fade-in">
+                                <td class="cart-item-name">${item.nama}</td>
+                                <td class="text-end cart-item-price">${formatRupiah(item.harga)}</td>
+                                <td class="text-center">
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="updateQty(${item.id}, ${item.jumlah - 1})">-</button>
+                                        <span class="qty-badge">${item.jumlah}</span>
+                                        <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="updateQty(${item.id}, ${item.jumlah + 1})">+</button>
+                                    </div>
+                                </td>
+                                <td class="text-end subtotal">${formatRupiah(item.subtotal)}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="removeFromCart(${item.id})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                });
+        }
+
+        function addToCart(id) {
+            fetch('/api/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ produk_id: id, jumlah: 1 })
+            }).then(r => r.json()).then(d => {
+                if (d.status === 'error') alert(d.message);
+                else updateKeranjang();
+            });
+        }
+
+        function removeFromCart(id) {
+            fetch('/api/cart/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ produk_id: id })
+            }).then(() => updateKeranjang());
+        }
+
+        function updateQty(id, qty) {
+            if (qty < 1) return removeFromCart(id);
+            fetch('/api/cart/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ produk_id: id, jumlah: qty })
+            }).then(r => r.json()).then(d => {
+                if (d.status === 'error') alert(d.message);
+                else updateKeranjang();
+            });
+        }
+
+        function setPayment(amount) {
+            document.getElementById('inputBayar').value = amount;
+        }
+
+        function setExact() {
+            document.getElementById('inputBayar').value = currentTotal;
+        }
+
+        function printStruk() {
+            const content = document.getElementById('areaStruk').innerHTML;
+            const win = window.open('', '', 'height=600,width=400');
+            win.document.write('<html><head><title>Struk</title>');
+            win.document.write('<style>body{font-family:monospace;padding:20px;font-size:12px;}.d-flex{display:flex;justify-content:space-between;}</style>');
+            win.document.write('</head><body>');
+            win.document.write(content);
+            win.document.write('</body></html>');
+            win.document.close();
+            win.print();
+        }
+
+        function openCamera(mode) {
+            let url = '';
+            if (mode === 'custom') {
+                url = document.getElementById('customCameraUrl').value;
+                if (!url) {
+                    alert('Masukkan URL kamera terlebih dahulu!');
+                    return;
+                }
+            }
+
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalOpenCamera'));
+            if (modal) modal.hide();
+
+            // Show loading message
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'position-fixed top-50 start-50 translate-middle bg-dark text-white p-4 rounded-3 shadow-lg';
+            loadingMsg.style.zIndex = '9999';
+            loadingMsg.innerHTML = '<i class="bi bi-camera-video-fill me-2"></i>Membuka Scanner...';
+            document.body.appendChild(loadingMsg);
+
+            // Call API to open scanner
+            fetch('/api/open_scanner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode: mode, url: url })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    setTimeout(() => loadingMsg.remove(), 1000);
+                    if (data.status === 'error') {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    loadingMsg.remove();
+                    alert('Gagal membuka scanner: ' + err);
+                });
+        }
+
+        // Search filter
+        document.getElementById('searchProduct').addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.product-item').forEach(item => {
+                const name = item.dataset.name;
+                const barcode = item.dataset.barcode || '';
+                item.style.display = (name.includes(query) || barcode.includes(query)) ? 'flex' : 'none';
+            });
+        });
+
+
+        // Init
+        document.addEventListener('DOMContentLoaded', function () {
+            setInterval(updateKeranjang, 1000);
+            updateKeranjang();
+
+            // Restore sidebar state
+            const savedState = localStorage.getItem('sidebarOpen');
+            if (savedState === 'false') {
+                toggleSidebar();
+            }
+
+            const modal = document.getElementById('modalStruk');
+            if (modal) new bootstrap.Modal(modal).show();
+        });
+    </script>
+</body>
+
+</html>
+</CodeContent>
+<parameter name="Complexity">6

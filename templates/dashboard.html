@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Kiosk</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+            min-height: 100vh;
+            padding: 24px 16px;
+            position: fixed;
+            width: var(--sidebar-width);
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-brand {
+            color: white;
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+
+        .sidebar-brand h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .sidebar-brand small {
+            opacity: 0.7;
+            font-size: 0.75rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        /* Hamburger Button */
+        .hamburger-btn {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 32px;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: 100%;
+        }
+
+        .stat-card .icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-card .label {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 4px;
+        }
+
+        .stat-card .change {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .change-up {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .change-down {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .card-custom {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .card-custom .card-header {
+            background: transparent;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 20px 24px;
+        }
+
+        .card-custom .card-body {
+            padding: 24px;
+        }
+
+        .table-modern {
+            margin: 0;
+        }
+
+        .table-modern th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            font-weight: 600;
+            padding: 12px 16px;
+            border: none;
+            background: #f8fafc;
+        }
+
+        .table-modern td {
+            padding: 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .low-stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #fef2f2;
+            margin-bottom: 8px;
+        }
+
+        .low-stock-item .name {
+            font-weight: 600;
+            color: #991b1b;
+        }
+
+        .low-stock-item .stock {
+            background: #ef4444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .model-info {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .model-info h6 {
+            color: #a5b4fc;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .model-info .model-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .recent-trx {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .recent-trx:last-child {
+            border-bottom: none;
+        }
+
+        .trx-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #6366f1;
+        }
+
+        .trx-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .hamburger-btn {
+                left: 20px !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu text-warning fs-4"></i>
+                <div>
+                    <h5>SMART KIOSK</h5>
+                    <small>Admin Dashboard</small>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav flex-column">
+            <a href="/" class="nav-link"><i class="bi bi-cart3"></i>Kasir (POS)</a>
+            <a href="/dashboard" class="nav-link active"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+            <a href="/riwayat" class="nav-link"><i class="bi bi-clock-history"></i>Riwayat</a>
+            <a href="/download_laporan" class="nav-link"><i class="bi bi-file-earmark-excel"></i>Export Laporan</a>
+            <hr class="my-3 border-secondary opacity-25">
+            <a href="/training" class="nav-link">
+                <i class="bi bi-cpu"></i>AI Training
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">
+                    <i class="bi bi-list" id="hamburgerIcon"></i>
+                </button>
+                <div>
+                    <h4 class="fw-bold mb-1">Dashboard Analitik</h4>
+                    <p class="text-muted mb-0">Ringkasan performa bisnis Anda</p>
+                </div>
+            </div>
+            <div>
+                <span class="badge bg-success"><i class="bi bi-circle-fill me-1" style="font-size:8px"></i>System
+                    Online</span>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="icon" style="background: #dbeafe; color: #2563eb;">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div>
+                            <div class="value">Rp {{ "{:,.0f}".format(omzet) }}</div>
+                            <div class="label">Total Omzet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="icon" style="background: #dcfce7; color: #16a34a;">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-end">
+                        <div>
+                            <div class="value">Rp {{ "{:,.0f}".format(omzet_hari_ini) }}</div>
+                            <div class="label">Omzet Hari Ini</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="icon" style="background: #fef3c7; color: #d97706;">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <div>
+                        <div class="value">{{ trx }}</div>
+                        <div class="label">Total Transaksi</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card">
+                    <div class="icon" style="background: #f3e8ff; color: #9333ea;">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div>
+                        <div class="value">{{ product_count }}</div>
+                        <div class="label">Total Produk</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Sales Chart -->
+            <div class="col-lg-8">
+                <div class="card card-custom">
+                    <div class="card-header">
+                        <h6 class="mb-0 fw-bold">📊 Grafik Penjualan 7 Hari Terakhir</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="salesChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Model Info -->
+            <div class="col-lg-4">
+                <div class="card card-custom mb-4">
+                    <div class="card-body">
+                        <div class="model-info">
+                            <h6>🤖 AI Model Aktif</h6>
+                            <p class="mb-0">Model yang digunakan untuk deteksi produk</p>
+                            <div class="model-name">{{ current_model }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-custom">
+                    <div class="card-header">
+                        <h6 class="mb-0 fw-bold">⚠️ Stok Menipis</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if low_stock %}
+                        {% for item in low_stock %}
+                        <div class="low-stock-item">
+                            <span class="name">{{ item.nama_barang }}</span>
+                            <span class="stock">{{ item.stok }} pcs</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-check-circle text-success fs-1 mb-2"></i>
+                            <p class="text-muted mb-0">Semua stok aman! 👍</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="row g-4 mt-2">
+            <div class="col-12">
+                <div class="card card-custom">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">🕐 Transaksi Terbaru</h6>
+                        <a href="/riwayat" class="btn btn-sm btn-primary">Lihat Semua</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-modern">
+                            <thead>
+                                <tr>
+                                    <th>ID Transaksi</th>
+                                    <th>Waktu</th>
+                                    <th>Detail</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trx in recent_trx %}
+                                <tr>
+                                    <td><span class="trx-id">{{ trx.trx_id or '-' }}</span></td>
+                                    <td>{{ trx.waktu }}</td>
+                                    <td><span class="text-truncate d-inline-block" style="max-width:300px">{{ trx.detail
+                                            }}</span></td>
+                                    <td class="text-end trx-amount">Rp {{ "{:,}".format(trx.total_belanja) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Upload Model -->
+    <div class="modal fade" id="modalUploadModel" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-robot me-2"></i>Upload AI Model</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/upload_model" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <strong>Info:</strong> Upload file model YOLO hasil training (.pt)
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">File Model (.pt)</label>
+                            <input type="file" name="file_model" class="form-control" accept=".pt" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload me-1"></i>Upload Model
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let sidebarOpen = true;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const hamburgerIcon = document.getElementById('hamburgerIcon');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarOpen) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                hamburgerIcon.classList.remove('bi-x-lg');
+                hamburgerIcon.classList.add('bi-list');
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                hamburgerIcon.classList.remove('bi-list');
+                hamburgerIcon.classList.add('bi-x-lg');
+            }
+
+            // Mobile overlay
+            if (window.innerWidth <= 768) {
+                overlay.classList.toggle('active', sidebarOpen);
+            }
+
+            // Save state
+            localStorage.setItem('sidebarOpen', sidebarOpen);
+        }
+
+        // Restore sidebar state
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedState = localStorage.getItem('sidebarOpen');
+            if (savedState === 'false') {
+                toggleSidebar();
+            }
+        });
+
+        // Sales Chart
+        const salesData = {{ sales_data| safe }};
+        const ctx = document.getElementById('salesChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: salesData.map(d => d.day),
+                datasets: [{
+                    label: 'Penjualan',
+                    data: salesData.map(d => d.sales),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Rp ' + context.raw.toLocaleString('id-ID');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                return 'Rp ' + (value / 1000) + 'K';
+                            }
+                        },
+                        grid: { color: '#f1f5f9' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
+</CodeContent>
+<parameter name="Complexity">5

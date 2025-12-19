@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Training Center - Smart Kiosk</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e1b4b;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+            min-height: 100vh;
+            padding: 24px 16px;
+            position: fixed;
+            width: var(--sidebar-width);
+            left: 0;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .sidebar-brand {
+            color: white;
+            padding: 16px;
+            margin-bottom: 32px;
+        }
+
+        .sidebar-brand h5 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .sidebar-brand small {
+            opacity: 0.7;
+            font-size: 0.75rem;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        /* Hamburger Button */
+        .hamburger-btn {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .main-content {
+            transition: margin-left 0.3s ease;
+            margin-left: var(--sidebar-width);
+            padding: 32px;
+        }
+
+        .card-glass {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .status-ok {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .dropzone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .dropzone:hover,
+        .dropzone.dragover {
+            border-color: var(--primary);
+            background: #eef2ff;
+        }
+
+        .dropzone i {
+            font-size: 3rem;
+            color: #94a3b8;
+        }
+
+        .progress-bar-animated {
+            background: linear-gradient(90deg, var(--primary), #818cf8);
+            animation: progress-animation 2s linear infinite;
+        }
+
+        @keyframes progress-animation {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 0.85rem;
+        }
+
+        .config-input {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 12px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .log-box {
+            background: #1e293b;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            padding: 16px;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .btn-action {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-cpu text-warning fs-4"></i>
+                <div>
+                    <h5>SMART KIOSK</h5>
+                    <small><span class="status-indicator status-online"></span>AI Training</small>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav flex-column">
+            <a href="/" class="nav-link"><i class="bi bi-cart3"></i>Kasir (POS)</a>
+            <a href="/dashboard" class="nav-link"><i class="bi bi-grid-1x2"></i>Dashboard</a>
+            <a href="/riwayat" class="nav-link"><i class="bi bi-clock-history"></i>Riwayat</a>
+            <hr class="my-3 border-secondary opacity-25">
+            <a href="/training" class="nav-link active"><i class="bi bi-robot"></i>AI Training</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()">
+                <i class="bi bi-list" id="hamburgerIcon"></i>
+            </button>
+            <div>
+                <h4 class="fw-bold mb-1"><i class="bi bi-robot me-2 text-primary"></i>AI Training Center</h4>
+                <p class="text-muted mb-0">Kelola dataset, labeling, dan training model AI</p>
+            </div>
+        </div>
+
+        <!-- Requirements Section -->
+        <div class="card card-glass mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2"></i>Persyaratan Sistem</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="checkRequirements()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="row g-3" id="requirementsStatus">
+                    <div class="col-md-2 col-6">
+                        <div class="status-badge status-warning w-100"><i class="bi bi-hourglass"></i> Loading...</div>
+                    </div>
+                </div>
+                <div id="installLabelImgSection" class="mt-3" style="display:none;">
+                    <button class="btn btn-warning btn-sm" onclick="installLabelImg()" id="btnInstallLabelImg">
+                        <i class="bi bi-download me-1"></i>Install LabelImg
+                    </button>
+                    <small class="text-muted ms-2">Diperlukan untuk labeling gambar</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Dataset Section -->
+            <div class="col-lg-6">
+                <div class="card card-glass h-100">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-images me-2"></i>Upload Dataset</h5>
+
+                        <div class="dropzone mb-3" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                            <i class="bi bi-cloud-arrow-up d-block mb-2"></i>
+                            <p class="mb-1 fw-bold">Drop files here</p>
+                            <small class="text-muted">atau klik untuk upload (JPG, PNG, max 10MB)</small>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png" style="display:none"
+                            onchange="uploadFiles(this.files)">
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Dataset Files</span>
+                            <span class="badge bg-primary" id="datasetCount">0 images</span>
+                        </div>
+                        <div class="file-list" id="fileList">
+                            <div class="text-muted text-center py-3">Belum ada gambar</div>
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0 small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Format nama:</strong> <code>namaclass_nomor.jpg</code><br>
+                            Contoh: <code>mouse_001.jpg</code>, <code>indomie_002.png</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Labeling Section -->
+            <div class="col-lg-6">
+                <div class="card card-glass h-100">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-tag me-2"></i>Labeling dengan LabelImg</h5>
+
+                        <div class="text-center py-4">
+                            <i class="bi bi-bounding-box text-primary" style="font-size: 4rem;"></i>
+                            <p class="mt-3 mb-1">Buka LabelImg untuk memberi label pada gambar</p>
+                            <small class="text-muted">Label akan disimpan otomatis di folder dataset</small>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-primary btn-action flex-fill" onclick="openLabelImg()">
+                                <i class="bi bi-box-arrow-up-right me-2"></i>Buka LabelImg
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="refreshDataset()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-primary" id="totalImages">0</h4>
+                                    <small class="text-muted">Total Gambar</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-3 bg-light rounded">
+                                    <h4 class="mb-0 text-success" id="labeledCount">0</h4>
+                                    <small class="text-muted">Sudah Dilabeli</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class Detection & Mapping Section -->
+        <div class="card card-glass mt-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-tags me-2"></i>Kelas Terdeteksi & Mapping</h5>
+                    <button class="btn btn-primary btn-sm" onclick="detectClasses()">
+                        <i class="bi bi-search me-1"></i>Detect Classes
+                    </button>
+                </div>
+
+                <!-- Duplicate Warning -->
+                <div id="duplicateWarning" class="alert alert-warning mb-3" style="display:none;">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    <strong>Perhatian!</strong> Ditemukan file duplikat:
+                    <ul class="mb-0 mt-2" id="duplicateList"></ul>
+                </div>
+
+                <!-- Invalid Format Warning -->
+                <div id="invalidWarning" class="alert alert-info mb-3" style="display:none;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <span id="invalidCount"></span> file tidak sesuai format <code>namaclass_nomor.ext</code>
+                </div>
+
+                <!-- Detected Classes Badges -->
+                <div id="classesContainer" class="mb-3">
+                    <span class="text-muted">Klik "Detect Classes" untuk memulai</span>
+                </div>
+
+                <!-- Mapping Table -->
+                <div class="table-responsive" id="mappingSection" style="display:none;">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Nama Kelas AI</th>
+                                <th>Produk Database</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mappingTableBody">
+                        </tbody>
+                    </table>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" onclick="saveMapping()">
+                            <i class="bi bi-save me-1"></i>Simpan Mapping ke scanner.py
+                        </button>
+                        <small class="text-muted align-self-center">
+                            Mapping ini akan mengupdate AI_TO_BARCODE_MAP di scanner.py
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Section -->
+        <div class="card card-glass mt-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4"><i class="bi bi-cpu me-2"></i>Training Model</h5>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-bold">Epochs</label>
+                        <input type="number" class="config-input w-100" id="configEpochs" value="50" min="1" max="300">
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-bold">Batch Size</label>
+                        <input type="number" class="config-input w-100" id="configBatch" value="8" min="1" max="32">
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-bold">Model Base</label>
+                        <input type="text" class="config-input w-100" value="yolo11l.pt" readonly>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small fw-bold">Device</label>
+                        <input type="text" class="config-input w-100" id="configDevice" value="GPU" readonly>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="fw-bold" id="trainingMessage">Status: Idle</span>
+                        <span id="trainingProgress">0%</span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar progress-bar-animated" role="progressbar" id="progressBar"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="log-box mb-4" id="logBox">
+                    <div class="text-muted">Waiting for training...</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-action" onclick="startTraining()" id="btnStart">
+                        <i class="bi bi-play-fill me-2"></i>Start Training
+                    </button>
+                    <button class="btn btn-danger btn-action" onclick="stopTraining()" id="btnStop" disabled>
+                        <i class="bi bi-stop-fill me-2"></i>Stop
+                    </button>
+                    <button class="btn btn-primary btn-action" onclick="applyModel()" id="btnApply" disabled>
+                        <i class="bi bi-check2-circle me-2"></i>Apply Model
+                    </button>
+                    <a href="/dashboard" class="btn btn-outline-secondary btn-action ms-auto">
+                        <i class="bi bi-arrow-left me-1"></i>Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Model Section -->
+        <div class="card card-glass mt-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-upload me-2"></i>Upload Model Manual</h5>
+                <p class="text-muted small mb-3">Upload file model YOLO (.pt) yang sudah ditraining sebelumnya untuk
+                    langsung digunakan.</p>
+
+                <form action="/upload_model" method="POST" enctype="multipart/form-data"
+                    class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">File Model (.pt)</label>
+                        <input type="file" name="file_model" class="form-control" accept=".pt" required>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-upload me-1"></i>Upload & Aktifkan
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="badge bg-secondary" id="currentModelBadge">Model: best.pt</span>
+                    </div>
+                </form>
+
+                <div class="alert alert-info mt-3 mb-0 small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Model yang diupload akan langsung menggantikan model aktif di folder <code>models/</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let pollingInterval = null;
+        let sidebarOpen = true;
+
+        function toggleSidebar() {
+            sidebarOpen = !sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const hamburgerIcon = document.getElementById('hamburgerIcon');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarOpen) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+                hamburgerIcon.classList.remove('bi-x-lg');
+                hamburgerIcon.classList.add('bi-list');
+            } else {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+                hamburgerIcon.classList.remove('bi-list');
+                hamburgerIcon.classList.add('bi-x-lg');
+            }
+
+            // Mobile overlay
+            if (window.innerWidth <= 768) {
+                overlay.classList.toggle('active', sidebarOpen);
+            }
+
+            localStorage.setItem('sidebarOpen', sidebarOpen);
+        }
+
+        // Check requirements on load
+        document.addEventListener('DOMContentLoaded', function () {
+            // Restore sidebar state
+            const savedState = localStorage.getItem('sidebarOpen');
+            if (savedState === 'false') {
+                toggleSidebar();
+            }
+
+            checkRequirements();
+            refreshDataset();
+            checkTrainingStatus();
+        });
+
+        function checkRequirements() {
+            fetch('/api/training/check-requirements')
+                .then(r => r.json())
+                .then(data => {
+                    let html = '';
+
+                    // Python
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${data.python.installed ? 'status-ok' : 'status-error'} w-100">
+                            <i class="bi bi-${data.python.installed ? 'check-circle' : 'x-circle'}"></i>
+                            Python ${data.python.version || ''}
+                        </div>
+                    </div>`;
+
+                    // PyTorch
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${data.pytorch.installed ? 'status-ok' : 'status-error'} w-100">
+                            <i class="bi bi-${data.pytorch.installed ? 'check-circle' : 'x-circle'}"></i>
+                            PyTorch ${data.pytorch.version || 'Not Found'}
+                        </div>
+                    </div>`;
+
+                    // CUDA
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${data.cuda.installed ? 'status-ok' : 'status-warning'} w-100">
+                            <i class="bi bi-${data.cuda.installed ? 'gpu-card' : 'cpu'}"></i>
+                            ${data.cuda.installed ? 'CUDA ' + data.cuda.version : 'CPU Mode'}
+                        </div>
+                    </div>`;
+
+                    // Ultralytics
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${data.ultralytics.installed ? 'status-ok' : 'status-error'} w-100">
+                            <i class="bi bi-${data.ultralytics.installed ? 'check-circle' : 'x-circle'}"></i>
+                            YOLO ${data.ultralytics.version || 'Not Found'}
+                        </div>
+                    </div>`;
+
+                    // LabelImg
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${data.labelimg.installed ? 'status-ok' : 'status-warning'} w-100">
+                            <i class="bi bi-${data.labelimg.installed ? 'check-circle' : 'exclamation-triangle'}"></i>
+                            LabelImg
+                        </div>
+                    </div>`;
+
+                    // AI System Status
+                    const aiEnabled = data.ai_system && data.ai_system.enabled;
+                    html += `<div class="col-md-2 col-6">
+                        <div class="status-badge ${aiEnabled ? 'status-ok' : 'status-error'} w-100">
+                            <i class="bi bi-${aiEnabled ? 'robot' : 'x-circle'}"></i>
+                            AI ${aiEnabled ? 'Ready' : 'Disabled'}
+                        </div>
+                    </div>`;
+
+                    document.getElementById('requirementsStatus').innerHTML = html;
+                    document.getElementById('installLabelImgSection').style.display = data.labelimg.installed ? 'none' : 'block';
+                    document.getElementById('configDevice').value = data.cuda.installed ? `GPU (${data.cuda.gpu || 'NVIDIA'})` : 'CPU';
+
+                    // Disable training button if AI is disabled
+                    const btnStart = document.getElementById('btnStart');
+                    if (!aiEnabled) {
+                        btnStart.disabled = true;
+                        btnStart.title = 'AI System disabled - GPU tidak tersedia';
+                        document.getElementById('trainingMessage').textContent = '⚠️ AI System Disabled - GPU tidak cukup untuk YOLO 11L';
+                    }
+                });
+        }
+
+        function installLabelImg() {
+            const btn = document.getElementById('btnInstallLabelImg');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Installing...';
+
+            fetch('/api/training/install-labelimg', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    alert(data.message);
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="bi bi-download me-1"></i>Install LabelImg';
+                    checkRequirements();
+                });
+        }
+
+        function openLabelImg() {
+            fetch('/api/training/open-labelimg', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'error') alert(data.message);
+                });
+        }
+
+        // Drag and drop
+        const dropzone = document.getElementById('dropzone');
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            uploadFiles(e.dataTransfer.files);
+        });
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            for (let file of files) formData.append('files', file);
+
+            fetch('/api/training/upload-dataset', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.errors.length > 0) alert('Errors:\n' + data.errors.join('\n'));
+                    refreshDataset();
+                });
+        }
+
+        function refreshDataset() {
+            fetch('/api/training/list-dataset')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('datasetCount').textContent = data.total_images + ' images';
+                    document.getElementById('totalImages').textContent = data.total_images;
+                    document.getElementById('labeledCount').textContent = data.labeled_count;
+
+                    if (data.images.length === 0) {
+                        document.getElementById('fileList').innerHTML = '<div class="text-muted text-center py-3">Belum ada gambar</div>';
+                    } else {
+                        let html = '';
+                        data.images.slice(0, 10).forEach(img => {
+                            const hasLabel = data.labels.includes(img.replace(/\.[^.]+$/, '.txt'));
+                            html += `<div class="file-item">
+                                <span><i class="bi bi-image me-2"></i>${img}</span>
+                                <div>
+                                    <span class="badge ${hasLabel ? 'bg-success' : 'bg-warning'} me-1">${hasLabel ? 'Labeled' : 'No Label'}</span>
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteFile('${img}')" title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>`;
+                        });
+                        if (data.images.length > 10) html += `<div class="text-muted text-center small">... dan ${data.images.length - 10} lainnya</div>`;
+                        document.getElementById('fileList').innerHTML = html;
+                    }
+                });
+        }
+
+        function startTraining() {
+            const epochs = parseInt(document.getElementById('configEpochs').value);
+            const batch_size = parseInt(document.getElementById('configBatch').value);
+
+            fetch('/api/training/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ epochs, batch_size })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'error') {
+                        alert(data.message);
+                    } else {
+                        document.getElementById('btnStart').disabled = true;
+                        document.getElementById('btnStop').disabled = false;
+                        startPolling();
+                    }
+                });
+        }
+
+        function stopTraining() {
+            fetch('/api/training/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(() => {
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('btnStop').disabled = true;
+                    stopPolling();
+                });
+        }
+
+        function applyModel() {
+            fetch('/api/training/apply-model', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => alert(data.message));
+        }
+
+        function startPolling() {
+            pollingInterval = setInterval(checkTrainingStatus, 2000);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+        }
+
+        function checkTrainingStatus() {
+            fetch('/api/training/status')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('trainingMessage').textContent = data.message;
+                    document.getElementById('trainingProgress').textContent = data.progress + '%';
+                    document.getElementById('progressBar').style.width = data.progress + '%';
+
+                    const logBox = document.getElementById('logBox');
+                    logBox.innerHTML = `<div>${data.message}</div>`;
+                    if (data.epoch > 0) logBox.innerHTML += `<div>Epoch: ${data.epoch}/${data.total_epochs}</div>`;
+                    if (data.error) logBox.innerHTML += `<div class="text-danger">Error: ${data.error}</div>`;
+
+                    if (data.running) {
+                        document.getElementById('btnStart').disabled = true;
+                        document.getElementById('btnStop').disabled = false;
+                        if (!pollingInterval) startPolling();
+                    } else {
+                        document.getElementById('btnStart').disabled = false;
+                        document.getElementById('btnStop').disabled = true;
+                        document.getElementById('btnApply').disabled = !data.completed;
+                        stopPolling();
+                    }
+                });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //                    AUTO-DETECT CLASS FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════
+
+        let detectedProducts = [];
+
+        function detectClasses() {
+            fetch('/api/training/detect-classes')
+                .then(r => r.json())
+                .then(data => {
+                    detectedProducts = data.products;
+
+                    // Show duplicate warning
+                    const dupWarning = document.getElementById('duplicateWarning');
+                    const dupList = document.getElementById('duplicateList');
+                    if (data.duplicates.length > 0) {
+                        dupWarning.style.display = 'block';
+                        dupList.innerHTML = data.duplicates.map(d =>
+                            `<li><code>${d.file1}</code> vs <code>${d.file2}</code> (${d.type})</li>`
+                        ).join('');
+                    } else {
+                        dupWarning.style.display = 'none';
+                    }
+
+                    // Show invalid format warning
+                    const invWarning = document.getElementById('invalidWarning');
+                    if (data.invalid.length > 0) {
+                        invWarning.style.display = 'block';
+                        document.getElementById('invalidCount').textContent = data.invalid.length;
+                    } else {
+                        invWarning.style.display = 'none';
+                    }
+
+                    // Show detected classes
+                    const container = document.getElementById('classesContainer');
+                    if (data.classes.length === 0) {
+                        container.innerHTML = '<span class="text-muted">Tidak ada kelas terdeteksi. Upload gambar dengan format: namaclass_001.jpg</span>';
+                        document.getElementById('mappingSection').style.display = 'none';
+                        return;
+                    }
+
+                    container.innerHTML = `<span class="badge bg-primary me-2">${data.classes.length} kelas</span>` +
+                        data.classes.map(c => `<span class="badge bg-secondary me-1">${c}</span>`).join('');
+
+                    // Show mapping table
+                    document.getElementById('mappingSection').style.display = 'block';
+                    const tbody = document.getElementById('mappingTableBody');
+
+                    let tableHtml = '';
+                    data.classes.forEach(cls => {
+                        const options = data.products.map(p =>
+                            `<option value="${p.barcode}">${p.name} (${p.barcode})</option>`
+                        ).join('');
+
+                        tableHtml += `<tr>
+                            <td><code>${cls}</code></td>
+                            <td>
+                                <select class="form-select form-select-sm mapping-select" data-class="${cls}">
+                                    <option value="">-- Pilih Produk --</option>
+                                    ${options}
+                                </select>
+                            </td>
+                            <td><span class="badge bg-warning mapping-status" data-class="${cls}">Belum dipetakan</span></td>
+                        </tr>`;
+                    });
+                    tbody.innerHTML = tableHtml;
+
+                    // Add change listeners to update status
+                    document.querySelectorAll('.mapping-select').forEach(select => {
+                        select.addEventListener('change', function () {
+                            const cls = this.dataset.class;
+                            const status = document.querySelector(`.mapping-status[data-class="${cls}"]`);
+                            if (this.value) {
+                                status.className = 'badge bg-success mapping-status';
+                                status.textContent = 'Dipetakan';
+                            } else {
+                                status.className = 'badge bg-warning mapping-status';
+                                status.textContent = 'Belum dipetakan';
+                            }
+                        });
+                    });
+                });
+        }
+
+        function saveMapping() {
+            const mapping = {};
+            let hasMapping = false;
+
+            document.querySelectorAll('.mapping-select').forEach(select => {
+                if (select.value) {
+                    mapping[select.dataset.class] = select.value;
+                    hasMapping = true;
+                }
+            });
+
+            if (!hasMapping) {
+                alert('Pilih minimal satu produk untuk mapping!');
+                return;
+            }
+
+            fetch('/api/training/save-mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mapping })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                    } else {
+                        alert('Error: ' + data.message);
+                        if (data.manual_mapping) {
+                            console.log('Manual mapping:', data.manual_mapping);
+                        }
+                    }
+                });
+        }
+
+        function deleteFile(filename) {
+            if (!confirm(`Hapus "${filename}" dan labelnya?`)) return;
+
+            fetch('/api/training/delete-dataset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: [filename] })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.deleted.length > 0) {
+                        refreshDataset();
+                        detectClasses();
+                    }
+                    if (data.errors.length > 0) {
+                        alert('Error: ' + data.errors.join(', '));
+                    }
+                });
+        }
+    </script>
+</body>
+
+</html>

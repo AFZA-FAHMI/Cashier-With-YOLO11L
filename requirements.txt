@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════════════
+#              Smart Retail Checkout - Dependencies
+# ═══════════════════════════════════════════════════════════════════
+# 
+# INSTALASI:
+# 1. Install PyTorch dengan CUDA terlebih dahulu (WAJIB):
+#    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#
+# 2. Baru install file ini:
+#    pip install -r requirements.txt
+#
+# ═══════════════════════════════════════════════════════════════════
+
+# Core AI & Computer Vision
+ultralytics>=8.3.0          # YOLO11 from Ultralytics
+opencv-python>=4.8.0        # Computer Vision
+numpy>=1.24.0               # Array operations
+
+# Barcode Reading
+pyzbar>=0.1.9               # Barcode/QR decoder
+
+# Web Backend
+flask>=3.0.0                # Web framework
+requests>=2.31.0            # HTTP client (Telegram)
+
+# Database & Excel
+pandas>=2.0.0               # Data manipulation
+openpyxl>=3.1.0             # Excel support
+
+# Utilities
+python-dateutil>=2.8.0      # Date utilities
+pyyaml>=6.0                 # YAML config
+
+# Optional: Untuk labeling
+# labelImg                  # pip install labelImg
