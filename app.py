@@ -24,19 +24,27 @@ app.secret_key = 'smart_retail_secret_key_2024'
 # ═══════════════════════════════════════════════════════════════════════════════
 TELEGRAM_CONFIG = {
     'enabled': True,
-    'bot_token': '8356178020:AAFEQH7kt9gv5Tzb37_-_c5iKaVmgY4Qzbc', '''#ganti dengan token bot telegram kamu'''
-    'chat_id': '5670624926', '''#ganti dengan chat ID kamu'''
+    
+    'chat_id': '5670624926', #ganti dengan chat ID kamu
+    'bot_token': '8356178020:AAFEQH7kt9gv5Tzb37_-_c5iKaVmgY4Qzbc', #ganti dengan token bot telegram kamu
     'notify_transaction': True,
     'notify_low_stock': True,
     'low_stock_threshold': 5,
 }
 
 def send_telegram_message(message, parse_mode='HTML'):
-    if not TELEGRAM_CONFIG['enabled']:
+    if not TELEGRAM_CONFIG.get('enabled', False):
         return False
+    
+    bot_token = TELEGRAM_CONFIG.get('bot_token', '')
+    chat_id = TELEGRAM_CONFIG.get('chat_id', '')
+    
+    if not bot_token or not chat_id:
+        return False
+    
     try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_CONFIG['bot_token']}/sendMessage"
-        payload = {'chat_id': TELEGRAM_CONFIG['chat_id'], 'text': message, 'parse_mode': parse_mode}
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {'chat_id': chat_id, 'text': message, 'parse_mode': parse_mode}
         response = requests.post(url, json=payload, timeout=10)
         return response.status_code == 200
     except Exception as e:
@@ -68,27 +76,32 @@ def notify_transaction(trx_id, items, total, payment, change):
         print(f"⚠️ Telegram notification error: {e}")
 
 def notify_low_stock(products):
-    if not TELEGRAM_CONFIG['notify_low_stock'] or not products:
+    if not TELEGRAM_CONFIG.get('notify_low_stock', False) or not products:
         return
-    items_text = "\n".join([f"  ⚠️ {p['nama_barang']}: {p['stok']} pcs" for p in products])
-    message = f"""🚨 <b>STOK MENIPIS!</b>
+    try:
+        items_text = "\n".join([f"  ⚠️ {p.get('nama_barang', 'Unknown')}: {p.get('stok', 0)} pcs" for p in products])
+        message = f"""🚨 <b>STOK MENIPIS!</b>
 {items_text}
 Segera restock!"""
-    send_telegram_async(message)
+        send_telegram_async(message)
+    except Exception as e:
+        print(f"⚠️ Low stock notification error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                              🔥 GPU CHECK FOR AI
+#                              🔥 GPU/MPS CHECK FOR AI
 # ═══════════════════════════════════════════════════════════════════════════════
 AI_ENABLED = False
-GPU_INFO = {'available': False, 'name': 'None', 'memory': 0}
+GPU_INFO = {'available': False, 'name': 'None', 'memory': 0, 'device': 'cpu'}
 
 def check_gpu_for_yolo():
-    """Check if GPU is available and has enough VRAM for YOLO 11L (minimum 4GB)"""
+    """Check if GPU (CUDA/MPS) is available for YOLO"""
     global AI_ENABLED, GPU_INFO
     
     try:
         import torch
+        import platform
         
+        # Check NVIDIA CUDA first (Windows/Linux)
         if torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # GB
@@ -96,13 +109,14 @@ def check_gpu_for_yolo():
             GPU_INFO = {
                 'available': True,
                 'name': gpu_name,
-                'memory': round(gpu_memory, 1)
+                'memory': round(gpu_memory, 1),
+                'device': 'cuda'
             }
             
             # YOLO 11L needs at least 4GB VRAM
             if gpu_memory >= 4.0:
                 AI_ENABLED = True
-                print(f"✅ GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
+                print(f"✅ NVIDIA GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
                 print("✅ AI System ENABLED - YOLO 11L ready!")
                 return True
             else:
@@ -110,18 +124,36 @@ def check_gpu_for_yolo():
                 print("❌ Not enough VRAM for YOLO 11L (need 4GB+)")
                 print("❌ AI System DISABLED - Barcode & Telegram only")
                 return False
+        
+        # Check Apple Silicon MPS (Mac M1/M2/M3)
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            # Mac with Apple Silicon
+            system_info = platform.processor() or "Apple Silicon"
+            
+            GPU_INFO = {
+                'available': True,
+                'name': f'Apple {system_info}',
+                'memory': 0,  # MPS shares system RAM
+                'device': 'mps'
+            }
+            
+            AI_ENABLED = True
+            print(f"✅ Apple Silicon MPS Found: {system_info}")
+            print("✅ AI System ENABLED - YOLO via MPS!")
+            return True
+        
         else:
-            print("❌ No CUDA GPU detected")
-            print("❌ AI System DISABLED - Barcode & Telegram only")
+            print("ℹ️ No CUDA GPU or Apple MPS detected")
+            print("📦 Running in Barcode & Telegram only mode")
             return False
             
     except ImportError:
-        print("❌ PyTorch not installed")
-        print("❌ AI System DISABLED - Barcode & Telegram only")
+        print("ℹ️ PyTorch not installed - AI features disabled")
+        print("📦 Running in Barcode & Telegram only mode")
         return False
     except Exception as e:
-        print(f"❌ GPU Check Error: {e}")
-        print("❌ AI System DISABLED - Barcode & Telegram only")
+        print(f"⚠️ GPU Check Error: {e}")
+        print("📦 Running in Barcode & Telegram only mode")
         return False
 
 # Run GPU check on startup
@@ -245,41 +277,63 @@ def api_scan():
 
 @app.route('/api/cart/add', methods=['POST'])
 def cart_add():
-    data = request.json
+    data = request.json or {}
     produk_id = data.get('produk_id')
     jumlah = data.get('jumlah', 1)
+    
+    if not produk_id:
+        return jsonify({'status': 'error', 'message': 'ID produk tidak valid'}), 400
+    
     conn = get_db_connection()
     produk = conn.execute('SELECT * FROM produk WHERE id = ?', (produk_id,)).fetchone()
     conn.close()
+    
     if not produk:
         return jsonify({'status': 'error', 'message': 'Produk tidak ditemukan'}), 404
+    
+    produk_dict = dict(produk)
+    produk_id_val = produk_dict.get('id', 0)
+    produk_nama = produk_dict.get('nama_barang', 'Unknown')
+    produk_harga = produk_dict.get('harga', 0)
+    produk_stok = produk_dict.get('stok', 0)
+    produk_barcode = produk_dict.get('barcode', '')
+    
     target_item = None
     current_qty = 0
     for item in KIOSK_CART:
-        if item['id'] == produk['id']:
+        if item.get('id') == produk_id_val:
             target_item = item
-            current_qty = item['jumlah']
+            current_qty = item.get('jumlah', 0)
             break
-    if (current_qty + jumlah) > produk['stok']:
-        return jsonify({'status': 'error', 'message': f'Stok tidak cukup! Sisa: {produk["stok"]}'}), 400
+    
+    if (current_qty + jumlah) > produk_stok:
+        return jsonify({'status': 'error', 'message': f'Stok tidak cukup! Sisa: {produk_stok}'}), 400
+    
     if target_item:
         target_item['jumlah'] += jumlah
-        target_item['subtotal'] = target_item['jumlah'] * target_item['harga']
+        target_item['subtotal'] = target_item.get('jumlah', 1) * target_item.get('harga', 0)
     else:
-        KIOSK_CART.append({'id': produk['id'], 'nama': produk['nama_barang'], 'harga': produk['harga'], 'jumlah': jumlah, 'subtotal': produk['harga'] * jumlah, 'barcode': produk['barcode']})
+        KIOSK_CART.append({
+            'id': produk_id_val, 
+            'nama': produk_nama, 
+            'harga': produk_harga, 
+            'jumlah': jumlah, 
+            'subtotal': produk_harga * jumlah, 
+            'barcode': produk_barcode
+        })
     return jsonify({'status': 'success'})
 
 @app.route('/api/cart/remove', methods=['POST'])
 def cart_remove():
-    data = request.json
+    data = request.json or {}
     produk_id = data.get('produk_id')
     global KIOSK_CART
-    KIOSK_CART = [item for item in KIOSK_CART if item['id'] != produk_id]
+    KIOSK_CART = [item for item in KIOSK_CART if item.get('id') != produk_id]
     return jsonify({'status': 'success'})
 
 @app.route('/api/cart/update', methods=['POST'])
 def cart_update():
-    data = request.json
+    data = request.json or {}
     produk_id = data.get('produk_id')
     jumlah = data.get('jumlah', 1)
     if jumlah < 1:
@@ -287,12 +341,14 @@ def cart_update():
     conn = get_db_connection()
     produk = conn.execute('SELECT stok FROM produk WHERE id = ?', (produk_id,)).fetchone()
     conn.close()
-    if produk and jumlah > produk['stok']:
-        return jsonify({'status': 'error', 'message': f'Stok tidak cukup!'}), 400
+    if produk:
+        produk_stok = dict(produk).get('stok', 0)
+        if jumlah > produk_stok:
+            return jsonify({'status': 'error', 'message': f'Stok tidak cukup!'}), 400
     for item in KIOSK_CART:
-        if item['id'] == produk_id:
+        if item.get('id') == produk_id:
             item['jumlah'] = jumlah
-            item['subtotal'] = item['harga'] * jumlah
+            item['subtotal'] = item.get('harga', 0) * jumlah
             break
     return jsonify({'status': 'success'})
 
@@ -368,14 +424,21 @@ def checkout():
     try:
         detail_list = []
         for item in KIOSK_CART:
-            conn.execute('UPDATE produk SET stok = stok - ? WHERE id = ?', (item['jumlah'], item['id']))
-            conn.execute('INSERT INTO riwayat_item (trx_id, produk_id, nama_barang, harga, jumlah, subtotal) VALUES (?, ?, ?, ?, ?, ?)', (trx_id, item['id'], item['nama'], item['harga'], item['jumlah'], item['subtotal']))
-            detail_list.append(f"{item['nama']} x{item['jumlah']}")
+            item_id = item.get('id', 0)
+            item_jumlah = item.get('jumlah', 1)
+            item_nama = item.get('nama', 'Unknown')
+            item_harga = item.get('harga', 0)
+            item_subtotal = item.get('subtotal', 0)
+            
+            conn.execute('UPDATE produk SET stok = stok - ? WHERE id = ?', (item_jumlah, item_id))
+            conn.execute('INSERT INTO riwayat_item (trx_id, produk_id, nama_barang, harga, jumlah, subtotal) VALUES (?, ?, ?, ?, ?, ?)', (trx_id, item_id, item_nama, item_harga, item_jumlah, item_subtotal))
+            detail_list.append(f"{item_nama} x{item_jumlah}")
         detail_str = ", ".join(detail_list)
         conn.execute('INSERT INTO riwayat (trx_id, waktu, detail, total_belanja, uang_bayar, kembalian) VALUES (?, ?, ?, ?, ?, ?)', (trx_id, waktu_str, detail_str, total_tagihan, uang_bayar, kembalian))
         conn.commit()
         notify_transaction(trx_id, KIOSK_CART.copy(), total_tagihan, uang_bayar, kembalian)
-        low_stock = conn.execute('SELECT nama_barang, stok FROM produk WHERE stok < ?', (TELEGRAM_CONFIG['low_stock_threshold'],)).fetchall()
+        low_stock_threshold = TELEGRAM_CONFIG.get('low_stock_threshold', 5)
+        low_stock = conn.execute('SELECT nama_barang, stok FROM produk WHERE stok < ?', (low_stock_threshold,)).fetchall()
         if low_stock:
             notify_low_stock([dict(p) for p in low_stock])
         session['last_trx'] = {'id': trx_id, 'waktu': waktu_str, 'items': KIOSK_CART.copy(), 'total': total_tagihan, 'bayar': uang_bayar, 'kembalian': kembalian}

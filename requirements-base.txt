@@ -1,0 +1,29 @@
+# ═══════════════════════════════════════════════════════════════════
+#              Smart Retail - BASE Requirements (Barcode Only)
+# ═══════════════════════════════════════════════════════════════════
+# 
+# Untuk pengguna TANPA GPU (Mac tanpa Apple Silicon, laptop non-GPU)
+# Hanya fitur barcode scanner + Telegram
+#
+# INSTALL: pip install -r requirements-base.txt
+#
+# ═══════════════════════════════════════════════════════════════════
+
+# Computer Vision (untuk kamera)
+opencv-python>=4.8.0
+
+# Barcode Reading
+pyzbar>=0.1.9
+
+# Web Backend
+flask>=3.0.0
+requests>=2.31.0
+
+# Database & Excel
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Utilities
+numpy>=1.24.0
+python-dateutil>=2.8.0
+pyyaml>=6.0

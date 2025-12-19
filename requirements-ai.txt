@@ -1,0 +1,29 @@
+# ═══════════════════════════════════════════════════════════════════
+#              Smart Retail - AI Requirements (YOLO + GPU)
+# ═══════════════════════════════════════════════════════════════════
+# 
+# HANYA untuk pengguna DENGAN GPU:
+# - Windows/Linux: NVIDIA GPU 4GB+ VRAM
+# - Mac: Apple Silicon (M1/M2/M3)
+#
+# ═══════════════════════════════════════════════════════════════════
+# INSTALASI:
+#
+# 1. Install base requirements dulu:
+#    pip install -r requirements-base.txt
+#
+# 2. Install PyTorch sesuai platform:
+#
+#    WINDOWS/LINUX (NVIDIA CUDA):
+#    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+#    MAC (Apple Silicon MPS):
+#    pip install torch torchvision
+#
+# 3. Install AI requirements:
+#    pip install -r requirements-ai.txt
+#
+# ═══════════════════════════════════════════════════════════════════
+
+# YOLO11 AI Detection
+ultralytics>=8.3.0

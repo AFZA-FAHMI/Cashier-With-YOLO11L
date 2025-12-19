@@ -2,34 +2,38 @@
 #              Smart Retail Checkout - Dependencies
 # ═══════════════════════════════════════════════════════════════════
 # 
-# INSTALASI:
-# 1. Install PyTorch dengan CUDA terlebih dahulu (WAJIB):
-#    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#
-# 2. Baru install file ini:
-#    pip install -r requirements.txt
+# PILIH INSTALASI SESUAI KEBUTUHAN:
 #
 # ═══════════════════════════════════════════════════════════════════
+# OPSI 1: BARCODE ONLY (Tanpa AI/GPU)
+# ═══════════════════════════════════════════════════════════════════
+# Untuk pengguna TANPA GPU (laptop biasa, Mac Intel)
+# 
+#    pip install -r requirements-base.txt
+#
+# ═══════════════════════════════════════════════════════════════════
+# OPSI 2: FULL AI (Dengan GPU)
+# ═══════════════════════════════════════════════════════════════════
+# Untuk pengguna DENGAN GPU:
+# - Windows/Linux: NVIDIA GPU 4GB+ VRAM
+# - Mac: Apple Silicon (M1/M2/M3)
+#
+# Langkah 1 - Install base:
+#    pip install -r requirements-base.txt
+#
+# Langkah 2 - Install PyTorch:
+#    WINDOWS/LINUX (NVIDIA): pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#    MAC (Apple Silicon):    pip install torch torchvision
+#
+# Langkah 3 - Install AI:
+#    pip install -r requirements-ai.txt
+#
+# ═══════════════════════════════════════════════════════════════════
+# ATAU INSTALL SEMUA (untuk development):
+# ═══════════════════════════════════════════════════════════════════
 
-# Core AI & Computer Vision
-ultralytics>=8.3.0          # YOLO11 from Ultralytics
-opencv-python>=4.8.0        # Computer Vision
-numpy>=1.24.0               # Array operations
+# Base Requirements (Web, Barcode, Database)
+-r requirements-base.txt
 
-# Barcode Reading
-pyzbar>=0.1.9               # Barcode/QR decoder
-
-# Web Backend
-flask>=3.0.0                # Web framework
-requests>=2.31.0            # HTTP client (Telegram)
-
-# Database & Excel
-pandas>=2.0.0               # Data manipulation
-openpyxl>=3.1.0             # Excel support
-
-# Utilities
-python-dateutil>=2.8.0      # Date utilities
-pyyaml>=6.0                 # YAML config
-
-# Optional: Untuk labeling
-# labelImg                  # pip install labelImg
+# AI Requirements (YOLO) - COMMENT jika tidak punya GPU
+-r requirements-ai.txt

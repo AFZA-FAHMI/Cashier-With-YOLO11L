@@ -7,6 +7,7 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
+import sys
 import cv2
 import numpy as np
 import requests
@@ -17,21 +18,36 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, Dict, List
 from collections import deque
-from pyzbar.pyzbar import decode
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#                         🔥 GPU CHECK - SEBELUM LOAD AI
+#                         📦 DEPENDENCY CHECK
+# ═══════════════════════════════════════════════════════════════════════════════
+PYZBAR_AVAILABLE = False
+try:
+    from pyzbar.pyzbar import decode as pyzbar_decode
+    PYZBAR_AVAILABLE = True
+except ImportError:
+    print("⚠️ pyzbar not installed - barcode scanning disabled")
+    print("   Install: pip install pyzbar")
+    def pyzbar_decode(image):
+        return []
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                         🔥 GPU/AI CHECK - SEBELUM LOAD AI
 # ═══════════════════════════════════════════════════════════════════════════════
 AI_AVAILABLE = False
-GPU_INFO = {'available': False, 'name': 'None', 'memory': 0}
+GPU_INFO = {'available': False, 'name': 'None', 'memory': 0, 'device': 'cpu'}
+PYTORCH_AVAILABLE = False
 
 def check_gpu_for_ai():
-    """Check if GPU is available and has enough VRAM for YOLO (minimum 4GB)"""
-    global AI_AVAILABLE, GPU_INFO
+    """Check if GPU (CUDA/MPS) is available for YOLO"""
+    global AI_AVAILABLE, GPU_INFO, PYTORCH_AVAILABLE
     
     try:
         import torch
+        PYTORCH_AVAILABLE = True
         
+        # Check NVIDIA CUDA first (Windows/Linux)
         if torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # GB
@@ -39,36 +55,54 @@ def check_gpu_for_ai():
             GPU_INFO = {
                 'available': True,
                 'name': gpu_name,
-                'memory': round(gpu_memory, 1)
+                'memory': round(gpu_memory, 1),
+                'device': 'cuda'
             }
             
             # YOLO needs at least 4GB VRAM
             if gpu_memory >= 4.0:
                 AI_AVAILABLE = True
-                print(f"✅ GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
+                print(f"✅ NVIDIA GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
                 print("✅ AI System ENABLED")
                 return True
             else:
                 print(f"⚠️ GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
                 print("❌ Not enough VRAM for YOLO (need 4GB+)")
-                print("❌ AI System DISABLED - Barcode only mode")
+                print("📦 Barcode only mode")
                 return False
+        
+        # Check Apple Silicon MPS (Mac M1/M2/M3)
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            system_info = platform.processor() or "Apple Silicon"
+            
+            GPU_INFO = {
+                'available': True,
+                'name': f'Apple {system_info}',
+                'memory': 0,  # MPS shares system RAM
+                'device': 'mps'
+            }
+            
+            AI_AVAILABLE = True
+            print(f"✅ Apple Silicon MPS Found: {system_info}")
+            print("✅ AI System ENABLED - YOLO via MPS!")
+            return True
+        
         else:
-            print("❌ No CUDA GPU detected")
-            print("❌ AI System DISABLED - Barcode only mode")
+            print("ℹ️ No CUDA GPU or Apple MPS detected")
+            print("📦 Barcode only mode")
             return False
             
     except ImportError:
-        print("❌ PyTorch not installed")
-        print("❌ AI System DISABLED - Barcode only mode")
+        print("ℹ️ PyTorch not installed - AI features disabled")
+        print("📦 Barcode only mode")
         return False
     except Exception as e:
-        print(f"❌ GPU Check Error: {e}")
-        print("❌ AI System DISABLED - Barcode only mode")
+        print(f"⚠️ GPU Check Error: {e}")
+        print("📦 Barcode only mode")
         return False
 
 # Run GPU check on import
-print("\n🔍 Checking GPU availability...")
+print("\n🔍 Checking system capabilities...")
 check_gpu_for_ai()
 
 # Only import YOLO if AI is available
@@ -79,10 +113,11 @@ if AI_AVAILABLE:
         YOLO = YoloModel
         print("✅ YOLO loaded successfully")
     except ImportError:
-        print("❌ Ultralytics not installed - AI disabled")
+        print("⚠️ Ultralytics not installed - AI disabled")
+        print("   Install: pip install ultralytics")
         AI_AVAILABLE = False
 else:
-    print("⏭️ Skipping YOLO import (no GPU)")
+    print("⏭️ Skipping AI/YOLO (not needed for barcode mode)")
 
 
 if platform.system() == "Windows":
@@ -220,7 +255,7 @@ class SmartScanner:
         # Check if AI is available (GPU check already done at import)
         if not AI_AVAILABLE:
             print("\n⏭️ AI System disabled - Barcode only mode")
-            print("   Tidak ada GPU yang cukup untuk YOLO")
+            print("   Tidak ada GPU/MPS yang tersedia untuk YOLO")
             self.yolo = None
             self.stats.model_name = "Barcode Only"
             return
@@ -241,12 +276,19 @@ class SmartScanner:
                 else:
                     print(f"   ❌ {cls_name} → NO BARCODE!")
             
-            import torch
-            if torch.cuda.is_available():
+            # Use appropriate device (CUDA or MPS)
+            device = GPU_INFO.get('device', 'cpu')
+            if device == 'cuda':
+                import torch
                 self.stats.gpu_active = True
                 self.stats.gpu_name = torch.cuda.get_device_name(0)[:20]
                 self.yolo.to('cuda')
-                print(f"🚀 GPU: {self.stats.gpu_name}")
+                print(f"🚀 CUDA GPU: {self.stats.gpu_name}")
+            elif device == 'mps':
+                self.stats.gpu_active = True
+                self.stats.gpu_name = GPU_INFO.get('name', 'Apple MPS')[:20]
+                self.yolo.to('mps')
+                print(f"🍎 Apple MPS: {self.stats.gpu_name}")
         except Exception as e:
             print(f"❌ Error loading model: {e}")
             self.yolo = None
@@ -270,7 +312,7 @@ class SmartScanner:
         
         # Barcode
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        decoded = decode(gray)
+        decoded = pyzbar_decode(gray)
         barcode = BarcodeResult(decoded[0].data.decode('utf-8'), decoded[0].rect) if decoded else None
         
         # AI

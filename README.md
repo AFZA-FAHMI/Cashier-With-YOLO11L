@@ -35,27 +35,85 @@ Sistem kasir pintar berbasis AI dengan deteksi produk otomatis menggunakan YOLO1
 
 ## 🚀 Quick Start
 
-*Note*: Untuk mode `WiFi` dan `USB Tethering`, Anda bisa menggunakan aplikasi **IP Webcam** yang tersedia di Google Play Store.
-
-### 1. Install Dependencies
+### 1. Buat Virtual Environment (Recommended)
 
 ```bash
-# Install PyTorch dengan CUDA (untuk GPU NVIDIA)
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# Windows
+python -m venv kasir_env
+kasir_env\Scripts\activate
 
-# Install requirements
-pip install -r requirements.txt
+# Mac/Linux
+python3 -m venv kasir_env
+source kasir_env/bin/activate
+
+# Atau dengan Conda
+conda create -n kasir_env python=3.10
+conda activate kasir_env
 ```
 
-### 2. Jalankan Server
+---
+
+### 2. Install Dependencies
+
+#### 📦 OPSI A: Barcode Only (Tanpa AI/GPU)
+Untuk laptop **TANPA GPU** atau **Mac Intel**:
+
+```bash
+pip install -r requirements-base.txt
+```
+
+#### 🤖 OPSI B: Full AI (Dengan GPU)
+
+**Step 1:** Install base requirements
+```bash
+pip install -r requirements-base.txt
+```
+
+**Step 2:** Install PyTorch sesuai platform
+
+| Platform | Command |
+|----------|---------|
+| **Windows/Linux + NVIDIA** | `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121` |
+| **Mac Apple Silicon (M1/M2/M3)** | `pip install torch torchvision` |
+
+**Step 3:** Install AI requirements
+```bash
+pip install -r requirements-ai.txt
+```
+
+---
+
+### 3. Jalankan Server
 
 ```bash
 python app.py
 ```
 
+**Output untuk Non-GPU:**
+```
+ℹ️ PyTorch not installed - AI features disabled
+📦 Running in Barcode & Telegram only mode
+```
+
+**Output untuk GPU (NVIDIA):**
+```
+✅ NVIDIA GPU Found: GeForce RTX 3060 (6.0GB)
+✅ AI System ENABLED - YOLO 11L ready!
+```
+
+**Output untuk Mac Apple Silicon:**
+```
+✅ Apple Silicon MPS Found: arm
+✅ AI System ENABLED - YOLO via MPS!
+```
+
 Buka browser: http://127.0.0.1:5000
 
-### 3. Jalankan Scanner (optional)
+---
+
+### 4. Jalankan Scanner (optional)
+
+*Note*: Untuk mode `WiFi` dan `USB Tethering`, gunakan aplikasi **IP Webcam** (Google Play Store).
 
 ```bash
 # Mode interaktif (pilih kamera manual)
@@ -537,20 +595,50 @@ smart_retail_project/
 
 ## 🔧 Requirements
 
-- **Python:** 3.9 - 3.11
-- **GPU:** NVIDIA (recommended for AI detection)
-- **CUDA:** 12.1 (for GPU acceleration)
-- **RAM:** Minimum 8GB
-- **Storage:** ~5GB (termasuk model YOLO)
+### System Requirements
 
-**Dependencies Utama:**
-- Flask (web server)
-- Ultralytics/YOLO (AI detection)
-- PyTorch + CUDA (GPU acceleration)
-- OpenCV (camera/image processing)
-- pyzbar (barcode scanning)
-- pandas/openpyxl (Excel handling)
-- requests (Telegram API)
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **Python** | 3.9 | 3.10 - 3.11 |
+| **RAM** | 4GB | 8GB+ |
+| **Storage** | 500MB (Barcode only) | 5GB (dengan AI) |
+
+### GPU Requirements (untuk AI)
+
+| Platform | GPU | Keterangan |
+|----------|-----|------------|
+| **Windows/Linux** | NVIDIA 4GB+ VRAM | CUDA 12.1 |
+| **Mac** | Apple Silicon (M1/M2/M3) | Via MPS |
+| **Tanpa GPU** | - | Barcode only mode |
+
+---
+
+### 📦 Requirements Files
+
+| File | Untuk | Size |
+|------|-------|------|
+| `requirements-base.txt` | Semua user | ~50MB |
+| `requirements-ai.txt` | User dengan GPU | ~2GB (include YOLO) |
+| `requirements.txt` | Development (full) | ~2GB |
+
+**Isi `requirements-base.txt`:**
+```
+opencv-python    # Kamera
+pyzbar           # Barcode scanning
+flask            # Web server
+requests         # Telegram API
+pandas, openpyxl # Excel handling
+numpy, pyyaml    # Utilities
+```
+
+**Isi `requirements-ai.txt`:**
+```
+ultralytics      # YOLO11 AI Detection
+```
+
+**PyTorch (install terpisah):**
+- Windows/Linux NVIDIA: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121`
+- Mac Apple Silicon: `pip install torch torchvision`
 
 ---
 
