@@ -49,10 +49,11 @@ def send_telegram_async(message):
     thread.start()
 
 def notify_transaction(trx_id, items, total, payment, change):
-    if not TELEGRAM_CONFIG['notify_transaction']:
+    if not TELEGRAM_CONFIG.get('notify_transaction', False):
         return
-    items_text = "\n".join([f"  • {item['nama']} x{item['jumlah']} = Rp {item['subtotal']:,}" for item in items])
-    message = f"""🛒 <b>TRANSAKSI BARU!</b>
+    try:
+        items_text = "\n".join([f"  • {item.get('nama', 'Unknown')} x{item.get('jumlah', 1)} = Rp {item.get('subtotal', 0):,}" for item in items])
+        message = f"""🛒 <b>TRANSAKSI BARU!</b>
 📋 ID: <code>{trx_id}</code>
 🕐 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 
@@ -62,7 +63,9 @@ def notify_transaction(trx_id, items, total, payment, change):
 💰 <b>Total: Rp {total:,}</b>
 💵 Bayar: Rp {payment:,}
 💱 Kembali: Rp {change:,}"""
-    send_telegram_async(message)
+        send_telegram_async(message)
+    except Exception as e:
+        print(f"⚠️ Telegram notification error: {e}")
 
 def notify_low_stock(products):
     if not TELEGRAM_CONFIG['notify_low_stock'] or not products:

@@ -18,7 +18,72 @@ from dataclasses import dataclass, field
 from typing import Optional, Tuple, Dict, List
 from collections import deque
 from pyzbar.pyzbar import decode
-from ultralytics import YOLO
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                         🔥 GPU CHECK - SEBELUM LOAD AI
+# ═══════════════════════════════════════════════════════════════════════════════
+AI_AVAILABLE = False
+GPU_INFO = {'available': False, 'name': 'None', 'memory': 0}
+
+def check_gpu_for_ai():
+    """Check if GPU is available and has enough VRAM for YOLO (minimum 4GB)"""
+    global AI_AVAILABLE, GPU_INFO
+    
+    try:
+        import torch
+        
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / (1024**3)  # GB
+            
+            GPU_INFO = {
+                'available': True,
+                'name': gpu_name,
+                'memory': round(gpu_memory, 1)
+            }
+            
+            # YOLO needs at least 4GB VRAM
+            if gpu_memory >= 4.0:
+                AI_AVAILABLE = True
+                print(f"✅ GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
+                print("✅ AI System ENABLED")
+                return True
+            else:
+                print(f"⚠️ GPU Found: {gpu_name} ({gpu_memory:.1f}GB)")
+                print("❌ Not enough VRAM for YOLO (need 4GB+)")
+                print("❌ AI System DISABLED - Barcode only mode")
+                return False
+        else:
+            print("❌ No CUDA GPU detected")
+            print("❌ AI System DISABLED - Barcode only mode")
+            return False
+            
+    except ImportError:
+        print("❌ PyTorch not installed")
+        print("❌ AI System DISABLED - Barcode only mode")
+        return False
+    except Exception as e:
+        print(f"❌ GPU Check Error: {e}")
+        print("❌ AI System DISABLED - Barcode only mode")
+        return False
+
+# Run GPU check on import
+print("\n🔍 Checking GPU availability...")
+check_gpu_for_ai()
+
+# Only import YOLO if AI is available
+YOLO = None
+if AI_AVAILABLE:
+    try:
+        from ultralytics import YOLO as YoloModel
+        YOLO = YoloModel
+        print("✅ YOLO loaded successfully")
+    except ImportError:
+        print("❌ Ultralytics not installed - AI disabled")
+        AI_AVAILABLE = False
+else:
+    print("⏭️ Skipping YOLO import (no GPU)")
+
 
 if platform.system() == "Windows":
     import winsound
@@ -152,6 +217,14 @@ class SmartScanner:
         print("="*50)
 
     def _init_model(self):
+        # Check if AI is available (GPU check already done at import)
+        if not AI_AVAILABLE:
+            print("\n⏭️ AI System disabled - Barcode only mode")
+            print("   Tidak ada GPU yang cukup untuk YOLO")
+            self.yolo = None
+            self.stats.model_name = "Barcode Only"
+            return
+        
         print("\n🤖 Loading AI model...")
         model_path = CONFIG.YOLO_MODEL if os.path.exists(CONFIG.YOLO_MODEL) else CONFIG.YOLO_MODEL_DEFAULT
         
@@ -175,7 +248,8 @@ class SmartScanner:
                 self.yolo.to('cuda')
                 print(f"🚀 GPU: {self.stats.gpu_name}")
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ Error loading model: {e}")
+            self.yolo = None
 
     def _send_api(self, barcode, name, method):
         def worker():
@@ -311,9 +385,16 @@ def main():
     parser.add_argument('--url', help='Custom camera URL (for custom mode)')
     args = parser.parse_args()
     
-    print("""
+    ai_status = "✅ ENABLED" if AI_AVAILABLE else "❌ DISABLED (Barcode only)"
+    gpu_text = f"{GPU_INFO['name']} ({GPU_INFO['memory']}GB)" if GPU_INFO['available'] else "Not Available"
+    
+    print(f"""
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║     🛒 SMART RETAIL SCANNER v3.0                                             ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  🤖 AI System  : {ai_status:<40} ║
+║  🎮 GPU        : {gpu_text:<40} ║
+║  📦 Barcode    : ✅ ENABLED                                                  ║
 ╚══════════════════════════════════════════════════════════════════════════════╝""")
     
     # If mode is provided via command line, use it directly
